@@ -93,9 +93,11 @@ def connect(addr):
 
 def put(addr, filename, targetname, blksize, timeout):
     s = connect(addr)
+    req = b'\x00\x02' + bytearray(targetname, 'utf-8') + b'\x00blksize\x00'
+    print(req)
+    s.sendto(req, addr)
     # ToDo
     s.close()
-    pass
 
 ########################################################################
 
