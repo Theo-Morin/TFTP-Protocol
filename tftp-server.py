@@ -3,6 +3,13 @@
 TFTP Server Command.
 """
 
+########################################################################
+#                               Authors                                #
+#                  Théo Morin : contact@theomorin.fr                   #
+#           Théo Berthier : theo.berthier@etu.u-bordeaux.fr            #
+########################################################################
+
+
 import sys
 import os
 import argparse
