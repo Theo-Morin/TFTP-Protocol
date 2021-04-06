@@ -61,8 +61,21 @@ def runServer(addr, timeout, thread):
 #                             CLIENT SIDE                              #
 ########################################################################
 
+def connect(addr):
+    print("Connexion au serveur..")
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        print("Connexion au serveur établie.")
+    except Exception as e:
+        print("Erreur lors de la connexion au serveur.")
+    pass
+
+########################################################################
+
+
 def put(addr, filename, targetname, blksize, timeout):
     # todo
+    connect(addr)
     pass
 
 ########################################################################
@@ -70,12 +83,7 @@ def put(addr, filename, targetname, blksize, timeout):
 
 def get(addr, filename, targetname, blksize, timeout):
     # todo
-    print("Connexion au serveur..")
-    try:
-        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        print("Connexion au serveur établie.")
-    except Exception as e:
-        print("Erreur lors de la connexion au serveur.")
+    connect(addr)
     
     req = b'\x00\x01' + bytearray(filename, 'utf-8') + b'\x00octet\x00'     # Exemple : b'\x00\x01hello.txt\x00octet\x00'
     print(req)
