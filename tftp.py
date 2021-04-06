@@ -66,28 +66,30 @@ def connect(addr):
     try:
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         print("Connexion au serveur établie.")
+        return s
     except Exception as e:
         print("Erreur lors de la connexion au serveur.")
+        return None
     pass
 
 ########################################################################
 
 
 def put(addr, filename, targetname, blksize, timeout):
-    # todo
-    connect(addr)
+    s = connect(addr)
+    # ToDo
+    s.close()
     pass
 
 ########################################################################
 
 
 def get(addr, filename, targetname, blksize, timeout):
-    # todo
-    connect(addr)
-    
+    s = connect(addr)
     req = b'\x00\x01' + bytearray(filename, 'utf-8') + b'\x00octet\x00'     # Exemple : b'\x00\x01hello.txt\x00octet\x00'
     print(req)
     s.sendto(req, addr)
+    # ToDo
     # data, addr = s.recvfrom(1024)
     # print('[{}:{}] server reply: {}'.format(addr[0], addr[1], data))
     s.close()
