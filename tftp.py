@@ -19,7 +19,8 @@ import sys
 ########################################################################
 
 def createACK(count):
-    if i < 10: it = b"\x0" + bytearray(count, 'utf-8')
+    it = b"\x00"
+    if count < 10: it = b"\x0" + bytearray(count, 'utf-8')
     else it = b"\x" + bytearray(count, 'utf-8')
     return b"\x00\x04\x00" + it
 
@@ -28,7 +29,8 @@ def createACK(count):
 
 def createDAT(count, data):
     # ToDo
-    if i < 10: it = b"\x0" + bytearray(count, 'utf-8')
+    it = b"\x00"
+    if count < 10: it = b"\x0" + bytearray(count, 'utf-8')
     else it = b"\x" + bytearray(count, 'utf-8')
     return b"\x00\x03\x00" + it + bytearray(data, 'utf-8')
 
@@ -36,17 +38,17 @@ def createDAT(count, data):
 
 
 def decode(data):
-    frame = data                                      # sample of WRQ as byte array
-    frame1 = frame[0:2]                               # Contient l'OP Code
-    frame2 = frame[2:]                                # frame2 = b'test.txt\x00octet\x00'
-    opcode = int.from_bytes(frame1, byteorder='big')  # opcode = 2
-    args = frame2.split(b'\x00')                      # args = [b'test.txt', b'octet', b'']
+    frame = data                                            # sample of WRQ as byte array
+    frame1 = frame[0:2]                                     # Contient l'OP Code
+    frame2 = frame[2:]                                      # frame2 = b'test.txt\x00octet\x00'
+    opcode = int.from_bytes(frame1, byteorder='big')        # opcode = 2
     if opcode == 1 or opcode == 2:
-        filename = args[0].decode('ascii')                # filename = 'test.txt'
-        mode = args[1].decode('ascii')                    # mode = 'octet'
+        args = frame2.split(b'\x00')                        # args = [b'test.txt', b'octet', b'']
+        filename = args[0].decode('ascii')                  # filename = 'test.txt'
+        mode = args[1].decode('ascii')                      # mode = 'octet'
         return [opcode, filename, mode]
     elif opcode == 3:
-        # todo
+        # todo : b'\x00\x03\x00\x02BBBBBBBBBB'
         return [opcode, None, None]
     elif opcode == 4:
         num = int.from_bytes(args[0], byteorder='big')
