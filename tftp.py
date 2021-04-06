@@ -18,6 +18,20 @@ import sys
 #                          COMMON ROUTINES                             #
 ########################################################################
 
+def fileTreatment():
+    # ToDo
+    pass
+
+
+########################################################################
+
+def sendRequest():
+    # ToDo
+    pass
+
+
+########################################################################
+
 def createACK(count):
     return b'\x00\x04' + count.to_bytes(2, 'big')
 
@@ -25,7 +39,6 @@ def createACK(count):
 
 
 def createDAT(count, data):
-    # ToDo
     return b'\x00\x03' + count.to_bytes(2, 'big') + bytearray(data, 'utf-8')
 
 ########################################################################
@@ -42,8 +55,10 @@ def decode(data):
         mode = args[1].decode('ascii')                      # mode = 'octet'
         return [opcode, filename, mode]
     elif opcode == 3:
-        # todo : b'\x00\x03\x00\x02BBBBBBBBBB'
-        return [opcode, None, None]
+        # todo : b'\x00\x02BBBBBBBBBB'
+        num = int.from_bytes(frame2[0:2], byteorder='big')
+        data = int.from_bytes(frame2[2:], byteorder='big')
+        return [opcode, num, data]
     elif opcode == 4:
         num = int.from_bytes(args[0], byteorder='big')
         return [opcode, num, None]
