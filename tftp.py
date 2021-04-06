@@ -11,10 +11,23 @@ import sys
 #                          COMMON ROUTINES                             #
 ########################################################################
 
-# todo
-############################################
-#            Décode la requête             #
-############################################
+def createACK(count):
+    if i < 10: it = b"\x0" + bytearray(count, 'utf-8')
+    else it = b"\x" + bytearray(count, 'utf-8')
+    return b"\x00\x04\x00" + it
+
+########################################################################
+
+
+def createDAT(count, data):
+    # ToDo
+    if i < 10: it = b"\x0" + bytearray(count, 'utf-8')
+    else it = b"\x" + bytearray(count, 'utf-8')
+    return b"\x00\x03\x00" + it + bytearray(data, 'utf-8')
+
+########################################################################
+
+
 def decode(data):
     frame = data                                      # sample of WRQ as byte array
     frame1 = frame[0:2]                               # Contient l'OP Code
@@ -24,7 +37,7 @@ def decode(data):
     if opcode == 1 or opcode == 2:
         filename = args[0].decode('ascii')                # filename = 'test.txt'
         mode = args[1].decode('ascii')                    # mode = 'octet'
-        return (opcode, filename, mode)
+        return [opcode, filename, mode]
     elif opcode == 3:
         # todo
         return [opcode, None, None]
@@ -35,7 +48,6 @@ def decode(data):
 ########################################################################
 #                             SERVER SIDE                              #
 ########################################################################
-
 
 def runServer(addr, timeout, thread):
     # todo
@@ -60,6 +72,7 @@ def runServer(addr, timeout, thread):
 ########################################################################
 #                             CLIENT SIDE                              #
 ########################################################################
+
 
 def connect(addr):
     print("Connexion au serveur..")
