@@ -19,20 +19,14 @@ import sys
 ########################################################################
 
 def createACK(count):
-    it = ''
-    if count < 10: it = '\x0' + count
-    else: it = '\x', count
-    return b'\x00\x04\x00' + bytearray(it, 'utf-8')
+    return b'\x00\x04' + count.to_bytes(2, 'big')
 
 ########################################################################
 
 
 def createDAT(count, data):
     # ToDo
-    it = b"\x00"
-    if count < 10: it = b"\x0" + bytearray(count, 'utf-8')
-    else: it = b"\x" + bytearray(count, 'utf-8')
-    return b"\x00\x03\x00" + it + bytearray(data, 'utf-8')
+    return b'\x00\x03' + count.to_bytes(2, 'big') + bytearray(data, 'utf-8')
 
 ########################################################################
 
