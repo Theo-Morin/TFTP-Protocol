@@ -115,6 +115,8 @@ def runServer(addr, timeout, thread):
             fileTreatment(socketclient,filename,blksize)
         if opcode == 2:
             pass
+            
+            
         # s.sendto(data, addrm)
         # print(data)
     s.close()
