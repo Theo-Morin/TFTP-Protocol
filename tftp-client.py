@@ -39,9 +39,14 @@ if args.cwd != '': os.chdir(args.cwd)
 # get request
 if(args.cmd == 'get'):
     tftp.get((args.host, args.port), args.filename, args.targetname, args.blksize, args.timeout)
+    # je ferai bien une boucle qui attend les données et quand on reçois un paquet on renvoie ack
+    # et on écrit dans notre fichier côté client
 
 # put request
 if(args.cmd == 'put'):
     tftp.put((args.host, args.port), args.filename, args.targetname, args.blksize, args.timeout)
+    # ici je pense qu'un file traitement peux être utiliser ? pour lire le fichier et l'envoyer en requête, 
+    # côté serveur on traitera des DAT donc dans la condition opcode == 3 on récupère le dat dans un string,
+    # et quand le string contient tout le message on utilise write pour écrire dans le fichier voulu   
 
 # EOF
