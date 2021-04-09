@@ -22,15 +22,15 @@ def fileTreatment():
     # ToDo
     pass
 
-
 ########################################################################
+
 
 def sendRequest():
     # ToDo
     pass
 
-
 ########################################################################
+
 
 def createACK(count):
     return b'\x00\x04' + count.to_bytes(2, 'big')
@@ -90,7 +90,6 @@ def runServer(addr, timeout, thread):
 ########################################################################
 #                             CLIENT SIDE                              #
 ########################################################################
-
 
 def connect(addr):
     print("Connexion au serveur..")
