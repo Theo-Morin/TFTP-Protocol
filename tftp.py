@@ -36,6 +36,8 @@ def createDAT(count, data):
 
 ########################################################################
 
+def truncateFile(filename):
+    open(filename, 'w').close()
 
 def writeInFile(filename,data):
     try:
@@ -70,8 +72,9 @@ def fileTreatment(sc,addr,filename,blksize):
         file = open(filename,'r')
         count = 1
         with open(filename,'r') as file:
-            data = file.read(blksize)
+            data = ""
             while len(data) == blksize or count == 1:
+                data = file.read(blksize)
                 try:
                     DAT = createDAT(count, data)
                     sc.sendto(DAT, addr)
@@ -79,7 +82,6 @@ def fileTreatment(sc,addr,filename,blksize):
                     print("\033[91mImpossible d'envoyer le packet au client.")
                 # sc.sendall(createDAT(count,data))
                 count = count + 1
-                data = file.read(blksize)
         file.close() 
     except Exception as e:
         print("\033[91mImpossible de lire dans le fichier.\n")
@@ -97,6 +99,7 @@ def decode(data):
         filename = args[0].decode('ascii')                  # filename = 'test.txt'
         mode = args[1].decode('ascii')                      # mode = 'octet'
         blksize = args[3].decode('ascii')
+        print("blksize", blksize)
         return [opcode, filename, mode, int(blksize)]
     elif opcode == 3:
         # todo : b'\x00\x02BBBBBBBBBB'
@@ -104,7 +107,7 @@ def decode(data):
         data = frame2[2:].decode()
         return [opcode, num, data, None]
     elif opcode == 4:
-        num = int.from_bytes(args[0], byteorder='big')
+        num = int.from_bytes(frame2[0:2], byteorder='big')
         return [opcode, num, None, None]
 
 ########################################################################
@@ -124,10 +127,11 @@ def runServer(addr, timeout, thread):
     while True:
         data, addrm = s.recvfrom(1500)
         print('\033[0m[{}:{}] client request: {}'.format(addrm[0], addrm[1], data))
-        opcode, filename, mode, blksize = decode(data)
+        opcode, _, _, _ = decode(data)
         if opcode == 1:
             # la fonction write coté client ecrie dans un nouveau fichier le contenu reçu
-            # les ACK seront envoyer du côté client vers le serveur pour confirmer la récéption. 
+            # les ACK seront envoyer du côté client vers le serveur pour confirmer la récéption.
+            opcode, filename, mode, blksize = decode(data)
             fileTreatment(s,addrm,filename,blksize)
         if opcode == 2:
             pass
@@ -173,11 +177,13 @@ def get(addr, filename, targetname, blksize, timeout):
     # ToDo
     if len(targetname) == 0:
         targetname = filename
+    truncateFile(targetname)
     while True:
         data, addr = s.recvfrom(1024)
+        print(data)
         opcode, num, data, _ = decode(data)
         if opcode == 3:
-            writeInFile(targetname, data)
+            addToFile(targetname, data)
             req = createACK(num)
             s.sendto(req, addr)
             if len(data) < blksize:
