@@ -34,7 +34,11 @@ args = parser.parse_args()
 if args.targetname == '': args.targetname = args.filename
 
 # change current working directory
-if args.cwd != '': os.chdir(args.cwd)
+if args.cwd != '':
+    try:
+        os.chdir(args.cwd)
+    except:
+        print("\033[93mLe dossier n'existe pas.")
 
 # get request
 if(args.cmd == 'get'):

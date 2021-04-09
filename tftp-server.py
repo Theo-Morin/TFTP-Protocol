@@ -26,7 +26,12 @@ parser.add_argument('--thread', action='store_true')
 args = parser.parse_args()
 
 # change current working directory
-if args.cwd != '': os.chdir(args.cwd)
+if args.cwd != '':
+    try:
+        os.chdir(args.cwd)
+    except:
+        print("\033[91mLe dossier n'existe pas.")
+        sys.exit(1)
 
 # run main server loop
 tftp.runServer(('', args.port), args.timeout, args.thread)

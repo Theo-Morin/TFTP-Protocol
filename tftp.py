@@ -18,36 +18,6 @@ import sys
 #                          COMMON ROUTINES                             #
 ########################################################################
 
-
-def write(filename,data):
-    try:
-        file = open(filename, "w")
-    except Exception as e:
-        print("problème d'ecriture dans le fichier :",filename)
-    for contenu in data:
-        file.write(contenu)
-    file.close()
-    
-# code vérifé le contenue du fichier coté serveur s'envoie par paquet de taille blksize
-def fileTreatment(sc,addr,filename,blksize):       
-    try:
-        file = open(filename,'r')
-    except Exception as e:
-        print("Erreur de fichier\n")
-    count = 1
-    with open(filename,'r') as file:
-        data = file.read(blksize)
-        while len(data) == blksize:
-            print(data)
-            sc.sendto(createDAT(count,data.encode()),addr)
-            data = file.read(blksize)
-    file.close() 
-        
-        
-
-########################################################################
-
-
 def sendRequest():
     # ToDo
     pass
@@ -67,6 +37,56 @@ def createDAT(count, data):
 ########################################################################
 
 
+def writeInFile(filename,data):
+    try:
+        file = open(filename, "w")
+        for contenu in data:
+            file.write(contenu)
+        file.close()
+    except Exception as e:
+        print("\033[91mProblème d'ecriture dans le fichier :",filename)
+
+########################################################################
+
+
+def addToFile(filename,data):
+    try:
+        # file = open(filename, "w")
+        # for contenu in data:
+        #     file.write(contenu)
+        # file.close()
+        file = open(filename, "a")
+        file.write(data)
+        file.close()
+    except Exception as e:
+        print("\033[91mProblème d'ecriture dans le fichier :",filename)
+
+########################################################################
+
+
+# code vérifé le contenue du fichier coté serveur s'envoie par paquet de taille blksize
+def fileTreatment(sc,addr,filename,blksize):
+    try:
+        file = open(filename,'r')
+        count = 1
+        with open(filename,'r') as file:
+            data = file.read(blksize)
+            while len(data) == blksize or count == 1:
+                try:
+                    DAT = createDAT(count, data)
+                    sc.sendto(DAT, addr)
+                except:
+                    print("\033[91mImpossible d'envoyer le packet au client.")
+                # sc.sendall(createDAT(count,data))
+                count = count + 1
+                data = file.read(blksize)
+        file.close() 
+    except Exception as e:
+        print("\033[91mImpossible de lire dans le fichier.\n")
+
+########################################################################
+
+
 def decode(data):
     frame = data                                            # sample of WRQ as byte array
     frame1 = frame[0:2]                                     # Contient l'OP Code
@@ -77,16 +97,15 @@ def decode(data):
         filename = args[0].decode('ascii')                  # filename = 'test.txt'
         mode = args[1].decode('ascii')                      # mode = 'octet'
         blksize = args[3].decode('ascii')
-        print(blksize)
         return [opcode, filename, mode, int(blksize)]
     elif opcode == 3:
         # todo : b'\x00\x02BBBBBBBBBB'
         num = int.from_bytes(frame2[0:2], byteorder='big')
-        data = int.from_bytes(frame2[2:], byteorder='big')
-        return [opcode, num, data]
+        data = frame2[2:].decode()
+        return [opcode, num, data, None]
     elif opcode == 4:
         num = int.from_bytes(args[0], byteorder='big')
-        return [opcode, num, None]
+        return [opcode, num, None, None]
 
 ########################################################################
 #                             SERVER SIDE                              #
@@ -94,20 +113,18 @@ def decode(data):
 
 def runServer(addr, timeout, thread):
     # todo
-    print("Lancement du serveur...")
+    print("\033[93mLancement du serveur...")
     try:
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         s.bind(addr)
-        print("Serveur lancé sur le port ", addr[1])
+        print("\033[92mServeur lancé sur le port", addr[1])
     except Exception as e:
-        print("Erreur lors du lancement du serveur.")
+        print("\033[91mErreur lors du lancement du serveur.")
 
     while True:
         data, addrm = s.recvfrom(1500)
-        print('[{}:{}] client request: {}'.format(addrm[0], addrm[1], data))
+        print('\033[0m[{}:{}] client request: {}'.format(addrm[0], addrm[1], data))
         opcode, filename, mode, blksize = decode(data)
-        print(opcode)
-        print(blksize)
         if opcode == 1:
             # la fonction write coté client ecrie dans un nouveau fichier le contenu reçu
             # les ACK seront envoyer du côté client vers le serveur pour confirmer la récéption. 
@@ -126,13 +143,13 @@ def runServer(addr, timeout, thread):
 ########################################################################
 
 def connect(addr):
-    print("Connexion au serveur..")
+    print("\033[93mConnexion au serveur..")
     try:
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        print("Connexion au serveur établie.")
+        print("\033[92mConnexion au serveur établie.")
         return s
     except Exception as e:
-        print("Erreur lors de la connexion au serveur.")
+        print("\033[91mErreur lors de la connexion au serveur.")
         return None
     pass
 
@@ -142,7 +159,6 @@ def connect(addr):
 def put(addr, filename, targetname, blksize, timeout):
     s = connect(addr)
     req = b'\x00\x02' + bytearray(targetname, 'utf-8') + b'\x00blksize\x00'
-    print(req)
     s.sendto(req, addr, blksize)
     # ToDo
     s.close()
@@ -153,10 +169,19 @@ def put(addr, filename, targetname, blksize, timeout):
 def get(addr, filename, targetname, blksize, timeout):
     s = connect(addr)
     req = b'\x00\x01' + bytearray(filename, 'utf-8') + b'\x00octet\x00' + b'blksize' +b'\x00' + bytearray(str(blksize),"utf-8") +b'\x00' # Exemple : b'\x00\x01hello.txt\x00octet\x00'
-    print(req)
     s.sendto(req, addr)
     # ToDo
-    # data, addr = s.recvfrom(1024)
+    if len(targetname) == 0:
+        targetname = filename
+    while True:
+        data, addr = s.recvfrom(1024)
+        opcode, num, data, _ = decode(data)
+        if opcode == 3:
+            req = createACK(num)
+            writeInFile(targetname, data)
+            if len(data) < blksize:
+                print("\033[92mL'intégralité du fichier vient d'être récupéré !")
+                break
     # print('[{}:{}] server reply: {}'.format(addr[0], addr[1], data))
     s.close()
     pass
