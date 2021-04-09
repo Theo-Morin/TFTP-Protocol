@@ -177,8 +177,9 @@ def get(addr, filename, targetname, blksize, timeout):
         data, addr = s.recvfrom(1024)
         opcode, num, data, _ = decode(data)
         if opcode == 3:
-            req = createACK(num)
             writeInFile(targetname, data)
+            req = createACK(num)
+            s.sendto(req, addr)
             if len(data) < blksize:
                 print("\033[92mL'intégralité du fichier vient d'être récupéré !")
                 break
