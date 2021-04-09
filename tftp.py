@@ -29,7 +29,7 @@ def write(filename,data):
     file.close()
     
 # code vérifé le contenue du fichier coté serveur s'envoie par paquet de taille blksize
-def fileTreatment(sc,filename,blksize):       
+def fileTreatment(sc,addr,filename,blksize):       
     try:
         file = open(filename,'r')
     except Exception as e:
@@ -39,7 +39,7 @@ def fileTreatment(sc,filename,blksize):
         data = file.read(blksize)
         while len(data) == blksize:
             print(data)
-            sc.send(createDAT(count,data.encode()))
+            sc.sendto(createDAT(count,data.encode()),addr)
             data = file.read(blksize)
     file.close() 
         
@@ -109,10 +109,9 @@ def runServer(addr, timeout, thread):
         print(opcode)
         print(blksize)
         if opcode == 1:
-            #ici la finaliter serai de recupérer la socket client pour envoyer le fichier lu il suffira d'utiliser
-            # la fonction write coté client pour ecrire dans un nouveau fichier le contenu reçu
+            # la fonction write coté client ecrie dans un nouveau fichier le contenu reçu
             # les ACK seront envoyer du côté client vers le serveur pour confirmer la récéption. 
-            fileTreatment(socketclient,filename,blksize)
+            fileTreatment(s,addrm,filename,blksize)
         if opcode == 2:
             pass
             
