@@ -18,9 +18,32 @@ import sys
 #                          COMMON ROUTINES                             #
 ########################################################################
 
-def fileTreatment():
-    # ToDo
-    pass
+
+def write(filename,data):
+    try:
+        file = open(filename, "w")
+    except Exception as e:
+        print("problème d'ecriture dans le fichier :",filename)
+    for contenu in data:
+        file.write(contenu)
+    file.close()
+    
+# code vérifé le contenue du fichier coté serveur s'envoie par paquet de taille blksize
+def fileTreatment(sc,addr,filename,blksize):       
+    try:
+        file = open(filename,'r')
+    except Exception as e:
+        print("Erreur de fichier\n")
+    count = 1
+    with open(filename,'r') as file:
+        data = file.read(blksize)
+        while len(data) == blksize:
+            print(data)
+            sc.sendto(createDAT(count,data.encode()),addr)
+            data = file.read(blksize)
+    file.close() 
+        
+        
 
 ########################################################################
 
@@ -53,7 +76,9 @@ def decode(data):
         args = frame2.split(b'\x00')                        # args = [b'test.txt', b'octet', b'']
         filename = args[0].decode('ascii')                  # filename = 'test.txt'
         mode = args[1].decode('ascii')                      # mode = 'octet'
-        return [opcode, filename, mode]
+        blksize = args[3].decode('ascii')
+        print(blksize)
+        return [opcode, filename, mode, int(blksize)]
     elif opcode == 3:
         # todo : b'\x00\x02BBBBBBBBBB'
         num = int.from_bytes(frame2[0:2], byteorder='big')
@@ -80,8 +105,17 @@ def runServer(addr, timeout, thread):
     while True:
         data, addrm = s.recvfrom(1500)
         print('[{}:{}] client request: {}'.format(addrm[0], addrm[1], data))
-        opcode, filename, mode = decode(data)
+        opcode, filename, mode, blksize = decode(data)
         print(opcode)
+        print(blksize)
+        if opcode == 1:
+            # la fonction write coté client ecrie dans un nouveau fichier le contenu reçu
+            # les ACK seront envoyer du côté client vers le serveur pour confirmer la récéption. 
+            fileTreatment(s,addrm,filename,blksize)
+        if opcode == 2:
+            pass
+            
+            
         # s.sendto(data, addrm)
         # print(data)
     s.close()
@@ -109,7 +143,7 @@ def put(addr, filename, targetname, blksize, timeout):
     s = connect(addr)
     req = b'\x00\x02' + bytearray(targetname, 'utf-8') + b'\x00blksize\x00'
     print(req)
-    s.sendto(req, addr)
+    s.sendto(req, addr, blksize)
     # ToDo
     s.close()
 
@@ -118,7 +152,7 @@ def put(addr, filename, targetname, blksize, timeout):
 
 def get(addr, filename, targetname, blksize, timeout):
     s = connect(addr)
-    req = b'\x00\x01' + bytearray(filename, 'utf-8') + b'\x00octet\x00'     # Exemple : b'\x00\x01hello.txt\x00octet\x00'
+    req = b'\x00\x01' + bytearray(filename, 'utf-8') + b'\x00octet\x00' + b'blksize' +b'\x00' + bytearray(str(blksize),"utf-8") +b'\x00' # Exemple : b'\x00\x01hello.txt\x00octet\x00'
     print(req)
     s.sendto(req, addr)
     # ToDo
