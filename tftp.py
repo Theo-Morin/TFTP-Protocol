@@ -143,8 +143,6 @@ def runServer(addr, timeout, thread):
             s.sendto(createACK(0),addrm)
         if opcode == 3:
             _ , num , text , _ = decode(data)
-            print("numéro de dat :",num)
-            print("dat du client :", data)
             addToFile(filename,text)
             s.sendto(createACK(num),addrm)
             if len(text) < blksize:
@@ -179,7 +177,6 @@ def put(addr, filename, targetname, blksize, timeout):
     s = connect(addr)
     req = b'\x00\x02' + bytearray(targetname, 'utf-8') + b'\x00octet\x00' + b'blksize' +b'\x00' + bytearray(str(blksize),"utf-8") +b'\x00'
     s.sendto(req, addr)    
-    print("ACK serveur commande put")
     fileTreatment(s,addr,filename,blksize,"WRQ")
     while True:
         data,addr = s.recvfrom(1024)
@@ -204,7 +201,6 @@ def get(addr, filename, targetname, blksize, timeout):
         data, addr = s.recvfrom(1024)
         print(data)
         opcode, num, data, _ = decode(data)
-        print("count renvoyer par le serveur :",num)
         if opcode == 3:
             addToFile(targetname, data)
             req = createACK(num)
