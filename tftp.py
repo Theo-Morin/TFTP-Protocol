@@ -81,7 +81,6 @@ def addToFile(filename,data):
 # code vérifé le contenue du fichier coté serveur s'envoie par paquet de taille blksize
 def fileTreatment(sc,addr,filename,blksize,cmd):
     try:
-        file = open(filename,'r')
         count = 1
         with open(filename,'r') as file:
             data = ""
@@ -100,11 +99,12 @@ def fileTreatment(sc,addr,filename,blksize,cmd):
                         sc.sendto(DAT, addr)
                         count = count + 1
                 except:
-                    print("\033[91mImpossible d'envoyer le packet au client.")   
-        file.close()
+                    print("\033[91mImpossible d'envoyer le packet au client.")
+                    return False
         return True
     except Exception as e:
         print("\033[91mImpossible de lire dans le fichier.\n")
+        return False
 
 ########################################################################
 
@@ -207,7 +207,6 @@ def get(addr, filename, targetname, blksize, timeout):
     truncateFile(targetname)
     while True:
         data, addr = s.recvfrom(1024)
-        print(data)
         opcode, num, data, _ = decode(data)
         if opcode == 3:
             addToFile(targetname, data)
