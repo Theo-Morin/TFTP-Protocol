@@ -39,6 +39,7 @@ if args.cwd != '':
         os.chdir(args.cwd)
     except:
         print("\033[93mLe dossier n'existe pas.")
+        sys.exit(1)
 
 # get request
 if(args.cmd == 'get'):

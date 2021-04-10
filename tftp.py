@@ -18,9 +18,17 @@ import sys
 #                          COMMON ROUTINES                             #
 ########################################################################
 
-def sendRequest():
-    # ToDo
-    pass
+def printLog(s, c, data, order):
+    opcode, count, _, _ = decode(data)
+    req = ""
+    if opcode == 1: req = "RRQ"
+    elif opcode == 2: req = "WRQ"
+    elif opcode == 3: req = "DAT" + str(count)
+    elif opcode == 3: req = "ACK" + str(count)
+    if order == 1:
+        print("\033[96m["+str(s[0])+":"+str(s[1])+" -> myclient:"+str(c[1])+"] "+req+"="+str(data))
+    else:
+        print("\033[94m[myclient:"+str(c[1])+" -> "+str(s[0])+":"+str(s[1])+"] "+req+"="+str(data))
 
 ########################################################################
 
@@ -36,8 +44,12 @@ def createDAT(count, data):
 
 ########################################################################
 
+
 def truncateFile(filename):
     open(filename, 'w').close()
+
+########################################################################
+
 
 def writeInFile(filename,data):
     try:
@@ -79,6 +91,7 @@ def fileTreatment(sc,addr,filename,blksize,cmd):
                     if count > 1 or cmd =="WRQ":
                         receiveddata,addrm = sc.recvfrom(1024)
                         opcode , num, _, _ = decode(receiveddata)
+                        print('\033[0m[{}:{}] client request: {}'.format(addrm[0], addrm[1], receiveddata))
                     else:
                         num = (count-1)
                         opcode = 4
@@ -146,9 +159,7 @@ def runServer(addr, timeout, thread):
             addToFile(filename,text)
             s.sendto(createACK(num),addrm)
             if len(text) < blksize:
-                endtext = "L'intégralité du fichier vient d'être envoyé !"
-                print(addrm)
-                s.sendto(endtext.encode("utf-8"),addrm)
+                print("\033[92mL'intégralité du fichier vient d'être réceptionné !")
       
         # s.sendto(data, addrm)
         # print(data)
@@ -178,12 +189,7 @@ def put(addr, filename, targetname, blksize, timeout):
     req = b'\x00\x02' + bytearray(targetname, 'utf-8') + b'\x00octet\x00' + b'blksize' +b'\x00' + bytearray(str(blksize),"utf-8") +b'\x00'
     s.sendto(req, addr)    
     fileTreatment(s,addr,filename,blksize,"WRQ")
-    while True:
-        data,addr = s.recvfrom(1024)
-        print(data)
-        if data.decode("utf-8") == ("L'intégralité du fichier vient d'être envoyé !"):
-                print(data.decode("utf-8"))
-                break
+    print("L'intégralité du fichier vient d'être envoyé !")
     s.close()
 
 ########################################################################
