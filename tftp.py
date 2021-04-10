@@ -67,7 +67,7 @@ def addToFile(filename,data):
 
 
 # code vérifé le contenue du fichier coté serveur s'envoie par paquet de taille blksize
-def fileTreatment(sc,addr,filename,blksize):
+def fileTreatment(sc,addr,filename,blksize,cmd):
     try:
         file = open(filename,'r')
         count = 1
@@ -76,12 +76,37 @@ def fileTreatment(sc,addr,filename,blksize):
             while len(data) == blksize or count == 1:
                 data = file.read(blksize)
                 try:
-                    DAT = createDAT(count, data)
-                    sc.sendto(DAT, addr)
+                    if count > 1 or cmd =="WRQ":
+                        receiveddata,addrm = sc.recvfrom(1024)
+                        print("donnée reçu dans filetreatment", receiveddata)
+                        opcode , num, _, _ = decode(receiveddata)
+                    else:
+                        num = (count-1)
+                        opcode = 4
+                   
+                    if opcode == 4 and num == (count-1):
+                        print("DAT Envoyer au serveur ou client")
+                        DAT = createDAT(count, data)
+                        sc.sendto(DAT, addr)
+                        count = count + 1
+                    print("count au debut la boucle :",count)
+                    
+                    
+                    #if count == 1 :
+                    #    DAT = createDAT(count, data)
+                    #    sc.sendto(DAT, addr)
+                    #    count = count + 1
+                    
+                    
+                    
+                    
+                    
+                    
+                    
                 except:
                     print("\033[91mImpossible d'envoyer le packet au client.")
                 # sc.sendall(createDAT(count,data))
-                count = count + 1
+                
         file.close() 
     except Exception as e:
         print("\033[91mImpossible de lire dans le fichier.\n")
@@ -99,7 +124,6 @@ def decode(data):
         filename = args[0].decode('ascii')                  # filename = 'test.txt'
         mode = args[1].decode('ascii')                      # mode = 'octet'
         blksize = args[3].decode('ascii')
-        print("blksize", blksize)
         return [opcode, filename, mode, int(blksize)]
     elif opcode == 3:
         # todo : b'\x00\x02BBBBBBBBBB'
@@ -132,9 +156,21 @@ def runServer(addr, timeout, thread):
             # la fonction write coté client ecrie dans un nouveau fichier le contenu reçu
             # les ACK seront envoyer du côté client vers le serveur pour confirmer la récéption.
             opcode, filename, mode, blksize = decode(data)
-            fileTreatment(s,addrm,filename,blksize)
+            fileTreatment(s,addrm,filename,blksize,"RRQ")
         if opcode == 2:
-            pass
+            opcode, filename, mode, blksize = decode(data)
+            s.sendto(createACK(0),addrm)
+        if opcode == 3:
+            _ , num , text , _ = decode(data)
+            print("numéro de dat :",num)
+            print("dat du client :", data)
+            addToFile(filename,text)
+            s.sendto(createACK(num),addrm)
+            if len(text) < blksize:
+                endtext = "L'intégralité du fichier vient d'être envoyé !"
+                print(addrm)
+                s.sendto(endtext.encode("utf-8"),addrm)
+        
             
             
         # s.sendto(data, addrm)
@@ -162,9 +198,17 @@ def connect(addr):
 
 def put(addr, filename, targetname, blksize, timeout):
     s = connect(addr)
-    req = b'\x00\x02' + bytearray(targetname, 'utf-8') + b'\x00blksize\x00'
-    s.sendto(req, addr, blksize)
-    # ToDo
+    req = b'\x00\x02' + bytearray(targetname, 'utf-8') + b'\x00octet\x00' + b'blksize' +b'\x00' + bytearray(str(blksize),"utf-8") +b'\x00'
+    s.sendto(req, addr)
+    
+    print("ACK serveur commande put")
+    fileTreatment(s,addr,filename,blksize,"WRQ")
+    while True:
+        data,addr = s.recvfrom(1024)
+        print(data)
+        if data.decode("utf-8") == ("L'intégralité du fichier vient d'être envoyé !"):
+                print(data.decode("utf-8"))
+                break
     s.close()
 
 ########################################################################
@@ -175,6 +219,7 @@ def get(addr, filename, targetname, blksize, timeout):
     req = b'\x00\x01' + bytearray(filename, 'utf-8') + b'\x00octet\x00' + b'blksize' +b'\x00' + bytearray(str(blksize),"utf-8") +b'\x00' # Exemple : b'\x00\x01hello.txt\x00octet\x00'
     s.sendto(req, addr)
     # ToDo
+    
     if len(targetname) == 0:
         targetname = filename
     truncateFile(targetname)
@@ -182,6 +227,7 @@ def get(addr, filename, targetname, blksize, timeout):
         data, addr = s.recvfrom(1024)
         print(data)
         opcode, num, data, _ = decode(data)
+        print("count renvoyer par le serveur :",num)
         if opcode == 3:
             addToFile(targetname, data)
             req = createACK(num)
