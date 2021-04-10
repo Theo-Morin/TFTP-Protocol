@@ -78,35 +78,16 @@ def fileTreatment(sc,addr,filename,blksize,cmd):
                 try:
                     if count > 1 or cmd =="WRQ":
                         receiveddata,addrm = sc.recvfrom(1024)
-                        print("donnée reçu dans filetreatment", receiveddata)
                         opcode , num, _, _ = decode(receiveddata)
                     else:
                         num = (count-1)
                         opcode = 4
-                   
                     if opcode == 4 and num == (count-1):
-                        print("DAT Envoyer au serveur ou client")
                         DAT = createDAT(count, data)
                         sc.sendto(DAT, addr)
                         count = count + 1
-                    print("count au debut la boucle :",count)
-                    
-                    
-                    #if count == 1 :
-                    #    DAT = createDAT(count, data)
-                    #    sc.sendto(DAT, addr)
-                    #    count = count + 1
-                    
-                    
-                    
-                    
-                    
-                    
-                    
                 except:
-                    print("\033[91mImpossible d'envoyer le packet au client.")
-                # sc.sendall(createDAT(count,data))
-                
+                    print("\033[91mImpossible d'envoyer le packet au client.")   
         file.close() 
     except Exception as e:
         print("\033[91mImpossible de lire dans le fichier.\n")
@@ -170,9 +151,7 @@ def runServer(addr, timeout, thread):
                 endtext = "L'intégralité du fichier vient d'être envoyé !"
                 print(addrm)
                 s.sendto(endtext.encode("utf-8"),addrm)
-        
-            
-            
+      
         # s.sendto(data, addrm)
         # print(data)
     s.close()
@@ -199,8 +178,7 @@ def connect(addr):
 def put(addr, filename, targetname, blksize, timeout):
     s = connect(addr)
     req = b'\x00\x02' + bytearray(targetname, 'utf-8') + b'\x00octet\x00' + b'blksize' +b'\x00' + bytearray(str(blksize),"utf-8") +b'\x00'
-    s.sendto(req, addr)
-    
+    s.sendto(req, addr)    
     print("ACK serveur commande put")
     fileTreatment(s,addr,filename,blksize,"WRQ")
     while True:
@@ -218,8 +196,7 @@ def get(addr, filename, targetname, blksize, timeout):
     s = connect(addr)
     req = b'\x00\x01' + bytearray(filename, 'utf-8') + b'\x00octet\x00' + b'blksize' +b'\x00' + bytearray(str(blksize),"utf-8") +b'\x00' # Exemple : b'\x00\x01hello.txt\x00octet\x00'
     s.sendto(req, addr)
-    # ToDo
-    
+    # ToDo  
     if len(targetname) == 0:
         targetname = filename
     truncateFile(targetname)
