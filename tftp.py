@@ -101,7 +101,8 @@ def fileTreatment(sc,addr,filename,blksize,cmd):
                         count = count + 1
                 except:
                     print("\033[91mImpossible d'envoyer le packet au client.")   
-        file.close() 
+        file.close()
+        return True
     except Exception as e:
         print("\033[91mImpossible de lire dans le fichier.\n")
 
@@ -188,8 +189,9 @@ def put(addr, filename, targetname, blksize, timeout):
     s = connect(addr)
     req = b'\x00\x02' + bytearray(targetname, 'utf-8') + b'\x00octet\x00' + b'blksize' +b'\x00' + bytearray(str(blksize),"utf-8") +b'\x00'
     s.sendto(req, addr)    
-    fileTreatment(s,addr,filename,blksize,"WRQ")
-    print("L'intégralité du fichier vient d'être envoyé !")
+    f = fileTreatment(s,addr,filename,blksize,"WRQ")
+    if f:
+        print("L'intégralité du fichier vient d'être envoyé !")
     s.close()
 
 ########################################################################
