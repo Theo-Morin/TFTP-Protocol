@@ -146,6 +146,8 @@ def runServer(addr, timeout, thread):
     try:
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         s.bind(addr)
+        #création nouvelle socket pour recevoir/envoyer les données depuit le serveur sans passer par le port 6969
+        sr = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         print("\033[92mServeur lancé sur le port", addr[1])
     except Exception as e:
         print("\033[91mErreur lors du lancement du serveur.")
@@ -158,10 +160,10 @@ def runServer(addr, timeout, thread):
             # la fonction write coté client ecrie dans un nouveau fichier le contenu reçu
             # les ACK seront envoyer du côté client vers le serveur pour confirmer la récéption.
             opcode, filename, mode, blksize = decode(data)
-            fileTreatment(s,addrm,filename,blksize,"RRQ")
+            fileTreatment(sr,addrm,filename,blksize,"RRQ")
         if opcode == 2:
             opcode, filename, mode, blksize = decode(data)
-            s.sendto(createACK(0),addrm)
+            sr.sendto(createACK(0),addrm)
         if opcode == 3:
             _ , num , text , _ = decode(data)
             addToFile(filename,text)
