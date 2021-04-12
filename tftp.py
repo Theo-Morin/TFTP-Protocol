@@ -151,11 +151,14 @@ def runServer(addr, timeout, thread):
         print("\033[92mServeur lancé sur le port", addr[1])
     except Exception as e:
         print("\033[91mErreur lors du lancement du serveur.")
-
+    
     while True:
         data, addrm = s.recvfrom(1500)
+        print("data socket 6969",data)
+        
         print('\033[0m[{}:{}] client request: {}'.format(addrm[0], addrm[1], data))
         opcode, _, _, _ = decode(data)
+        print("print opcode requet ",opcode)
         if opcode == 1:
             # la fonction write coté client ecrie dans un nouveau fichier le contenu reçu
             # les ACK seront envoyer du côté client vers le serveur pour confirmer la récéption.
@@ -164,15 +167,20 @@ def runServer(addr, timeout, thread):
         if opcode == 2:
             opcode, filename, mode, blksize = decode(data)
             sr.sendto(createACK(0),addrm)
-        if opcode == 3:
-            _ , num , text , _ = decode(data)
+        DataNewSocket , _ = sr.recv(1500)
+        print("data nouvelle socket ",data)
+        OpcodeNewSocket , _ , _ ,_ = decode(DataNewSocket)
+        print("opcode nouvelle socket",OpcodeNewSocket)
+        if OpcodeNewSocket == 3:
+            _ , num , text , _ = decode(DataNewSocket)
             addToFile(filename,text)
-            s.sendto(createACK(num),addrm)
+            sr.sendto(createACK(num),addr)
             if len(text) < blksize:
                 print("\033[92mL'intégralité du fichier vient d'être réceptionné !")
       
         # s.sendto(data, addrm)
         # print(data)
+    sr.close()
     s.close()
     pass
 
@@ -199,8 +207,12 @@ def put(addr, filename, targetname, blksize, timeout):
     req = b'\x00\x02' + bytearray(targetname, 'utf-8') + b'\x00octet\x00' + b'blksize' +b'\x00' + bytearray(str(blksize),"utf-8") +b'\x00'
     s.sendto(req, addr)
     addrc = s.getsockname()
+    data , addrnewport = s.recvfrom(1024)
+    print(addrnewport)
+    print("data ",data)
     printLog(addr, addrc, req, 2)
-    f = fileTreatment(s,addr,filename,blksize,"WRQ")
+    printLog(addrc,addrnewport,data,2)
+    f = fileTreatment(s,addrnewport,filename,blksize,"WRQ")
     if f:
         print("\033[92mL'intégralité du fichier vient d'être envoyé !")
     s.close()
