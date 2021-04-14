@@ -1,1 +1,5 @@
 __pycache__/
+fileserver.txt
+clientfile.txt
+putfile.txt
+receivedputfile.txt
