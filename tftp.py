@@ -43,6 +43,7 @@ def process(addrm, data, timeout):
                     print("\033[92mL'intégralité du fichier vient d'être réceptionné !")
                     break
 
+########################################################################
 
 def printLog(s, c, data, order):
     opcode, count, _, _ = decode(data)
@@ -105,7 +106,7 @@ def addToFile(filename,data):
 
 
 # code vérifé le contenue du fichier coté serveur s'envoie par paquet de taille blksize
-def fileTreatment(sc,addr,filename,blksize,cmd):
+def fileTreatment(sc,addr,filename,blksize,cmd, timeout=2):
     try:
         addrc = sc.getsockname()
         if cmd == "WRQ":
@@ -113,7 +114,7 @@ def fileTreatment(sc,addr,filename,blksize,cmd):
             addrc = sc.getsockname()
             printLog(addr, addrc, receiveddata, 1)
             sc.close()
-            sc = connect(addr)
+            sc = connect(addr, timeout)
             sc.bind(addrc)
 
         count = 1
@@ -223,7 +224,7 @@ def put(addr, filename, targetname, blksize, timeout):
     s.sendto(req, addr)
     addrc = s.getsockname()
     printLog(addr, addrc, req, 2)
-    f = fileTreatment(s,addr,filename,blksize,"WRQ")
+    f = fileTreatment(s,addr,filename,blksize,"WRQ", timeout)
     if f:
         print("\033[92mL'intégralité du fichier vient d'être envoyé !")
     s.close()
