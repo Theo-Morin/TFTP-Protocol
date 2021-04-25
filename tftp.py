@@ -157,9 +157,11 @@ def runServer(addr, timeout, thread):
     print("\033[93mLancement du serveur...")
     try:
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.settimeout(timeout)
         s.bind(addr)
         #création nouvelle socket pour recevoir/envoyer les données depuit le serveur sans passer par le port 6969
         sr = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.settimeout(timeout)
         print("\033[92mServeur lancé sur le port", addr[1])
     except Exception as e:
         print("\033[91mErreur lors du lancement du serveur.")
@@ -201,10 +203,11 @@ def runServer(addr, timeout, thread):
 #                             CLIENT SIDE                              #
 ########################################################################
 
-def connect(addr):
+def connect(addr, timeout):
     print("\033[93mConnexion au serveur..")
     try:
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.settimeout(timeout)
         print("\033[92mConnexion au serveur établie.")
         return s
     except Exception as e:
@@ -216,7 +219,7 @@ def connect(addr):
 
 
 def put(addr, filename, targetname, blksize, timeout):
-    s = connect(addr)
+    s = connect(addr, timeout)
     if blksize == 512:
         req = b'\x00\x02' + bytearray(targetname, 'utf-8') + b'\x00octet\x00' # Exemple : b'\x00\x01hello.txt\x00octet\x00'
     else:
@@ -233,7 +236,7 @@ def put(addr, filename, targetname, blksize, timeout):
 
 
 def get(addr, filename, targetname, blksize, timeout):
-    s = connect(addr)
+    s = connect(addr,timeout)
     if blksize == 512:
         req = b'\x00\x01' + bytearray(filename, 'utf-8') + b'\x00octet\x00' # Exemple : b'\x00\x01hello.txt\x00octet\x00'
     else:   
