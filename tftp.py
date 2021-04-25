@@ -11,12 +11,38 @@ TFTP Module.
 
 import socket
 import sys
-
+import threading
 
 
 ########################################################################
 #                          COMMON ROUTINES                             #
 ########################################################################
+
+def process(addrm, data, timeout):
+    sr = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    sr.settimeout(timeout)
+    print('\033[0m[{}:{}] client request: {}'.format(addrm[0], addrm[1], data))
+    opcode, _, _, _ = decode(data)
+    if opcode == 1:
+        # la fonction write coté client ecrie dans un nouveau fichier le contenu reçu
+        # les ACK seront envoyer du côté client vers le serveur pour confirmer la récéption.
+        opcode, filename, mode, blksize = decode(data)
+        fileTreatment(sr,addrm,filename,blksize,"RRQ")
+    if opcode == 2:
+        opcode, filename, mode, blksize = decode(data)
+        sr.sendto(createACK(0),addrm)
+        while True:
+            DataNewSocket , _= sr.recvfrom(1500)
+            OpcodeNewSocket , _ , _ ,_ = decode(DataNewSocket)
+            if OpcodeNewSocket == 3:
+                _ , num , text , _ = decode(DataNewSocket)
+                addToFile(filename,text)
+                sr.sendto(createACK(num),addrm)
+                print('\033[0m[{}:{}] client request: {}'.format(addrm[0], addrm[1], DataNewSocket))
+                if len(text) < blksize:
+                    print("\033[92mL'intégralité du fichier vient d'être réceptionné !")
+                    break
+
 
 def printLog(s, c, data, order):
     opcode, count, _, _ = decode(data)
@@ -112,7 +138,6 @@ def fileTreatment(sc,addr,filename,blksize,cmd):
                         if cmd == "WRQ":
                             printLog(addr, addrc, DAT, 2)
                         count = count + 1
-                    print("count :",count)
                 except:
                     print("\033[91mImpossible d'envoyer le packet au client.")
                     return False
@@ -133,7 +158,6 @@ def decode(data):
         args = frame2.split(b'\x00')                        # args = [b'test.txt', b'octet', b'']
         filename = args[0].decode('ascii')                  # filename = 'test.txt'
         mode = args[1].decode('ascii')                      # mode = 'octet'
-        print("len args : ",len(args))
         if len(args) < 4:
             blksize = 512 
         else:
@@ -157,44 +181,16 @@ def runServer(addr, timeout, thread):
     print("\033[93mLancement du serveur...")
     try:
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        s.settimeout(timeout)
         s.bind(addr)
         #création nouvelle socket pour recevoir/envoyer les données depuit le serveur sans passer par le port 6969
-        sr = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        s.settimeout(timeout)
         print("\033[92mServeur lancé sur le port", addr[1])
     except Exception as e:
         print("\033[91mErreur lors du lancement du serveur.")
     
     while True:
         data, addrm = s.recvfrom(1500)
-        
-        print('\033[0m[{}:{}] client request: {}'.format(addrm[0], addrm[1], data))
-        opcode, _, _, _ = decode(data)
-        if opcode == 1:
-            # la fonction write coté client ecrie dans un nouveau fichier le contenu reçu
-            # les ACK seront envoyer du côté client vers le serveur pour confirmer la récéption.
-            opcode, filename, mode, blksize = decode(data)
-            fileTreatment(sr,addrm,filename,blksize,"RRQ")
-        if opcode == 2:
-            opcode, filename, mode, blksize = decode(data)
-            print(blksize)
-            sr.sendto(createACK(0),addrm)
-            while True:
-                DataNewSocket , _= sr.recvfrom(1500)
-                OpcodeNewSocket , _ , _ ,_ = decode(DataNewSocket)
-                if OpcodeNewSocket == 3:
-                    _ , num , text , _ = decode(DataNewSocket)
-                    print("num server ",num)
-                    addToFile(filename,text)
-                    sr.sendto(createACK(num),addrm)
-                    print('\033[0m[{}:{}] client request: {}'.format(addrm[0], addrm[1], DataNewSocket))
-                    if len(text) < blksize:
-                        print("\033[92mL'intégralité du fichier vient d'être réceptionné !")
-                        break
-        
-        # s.sendto(data, addrm)
-        # print(data)
+        t = threading.Thread(None, process, None, (addrm,data,timeout, ))
+        t.start()   # start to execute process() in thread
     sr.close()
     s.close()
     pass
