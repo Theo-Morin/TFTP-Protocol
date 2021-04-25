@@ -40,7 +40,7 @@ def createACK(count):
 
 
 def createDAT(count, data):
-    return b'\x00\x03' + count.to_bytes(2, 'big') + bytearray(data, 'utf-8')
+    return b'\x00\x03' + count.to_bytes(2, 'big') + data
 
 ########################################################################
 
@@ -53,7 +53,7 @@ def truncateFile(filename):
 
 def writeInFile(filename,data):
     try:
-        file = open(filename, "w")
+        file = open(filename, "wb")
         for contenu in data:
             file.write(contenu)
         file.close()
@@ -69,7 +69,7 @@ def addToFile(filename,data):
         # for contenu in data:
         #     file.write(contenu)
         # file.close()
-        file = open(filename, "a")
+        file = open(filename, "ab")
         file.write(data)
         file.close()
     except Exception as e:
@@ -85,12 +85,13 @@ def fileTreatment(sc,addr,filename,blksize,cmd):
         if cmd == "WRQ":
             receiveddata,addr = sc.recvfrom(1024)
             addrc = sc.getsockname()
+            printLog(addr, addrc, receiveddata, 1)
             sc.close()
             sc = connect(addr)
             sc.bind(addrc)
 
         count = 1
-        with open(filename,'r') as file:
+        with open(filename,'rb') as file:
             data = ""
             while len(data) == blksize or count == 1:
                 data = file.read(blksize)
@@ -107,11 +108,11 @@ def fileTreatment(sc,addr,filename,blksize,cmd):
                         opcode = 4
                     if opcode == 4 and num == (count-1):
                         DAT = createDAT(count, data)
-                        print(DAT, addr)
                         sc.sendto(DAT, addr)
                         if cmd == "WRQ":
                             printLog(addr, addrc, DAT, 2)
                         count = count + 1
+                    print("count :",count)
                 except:
                     print("\033[91mImpossible d'envoyer le packet au client.")
                     return False
@@ -132,12 +133,16 @@ def decode(data):
         args = frame2.split(b'\x00')                        # args = [b'test.txt', b'octet', b'']
         filename = args[0].decode('ascii')                  # filename = 'test.txt'
         mode = args[1].decode('ascii')                      # mode = 'octet'
-        blksize = args[3].decode('ascii')
+        print("len args : ",len(args))
+        if len(args) < 4:
+            blksize = 512 
+        else:
+            blksize = args[3].decode('ascii')
         return [opcode, filename, mode, int(blksize)]
     elif opcode == 3:
         # todo : b'\x00\x02BBBBBBBBBB'
         num = int.from_bytes(frame2[0:2], byteorder='big')
-        data = frame2[2:].decode()
+        data = frame2[2:]
         return [opcode, num, data, None]
     elif opcode == 4:
         num = int.from_bytes(frame2[0:2], byteorder='big')
@@ -171,12 +176,14 @@ def runServer(addr, timeout, thread):
             fileTreatment(sr,addrm,filename,blksize,"RRQ")
         if opcode == 2:
             opcode, filename, mode, blksize = decode(data)
+            print(blksize)
             sr.sendto(createACK(0),addrm)
             while True:
                 DataNewSocket , _= sr.recvfrom(1500)
                 OpcodeNewSocket , _ , _ ,_ = decode(DataNewSocket)
                 if OpcodeNewSocket == 3:
                     _ , num , text , _ = decode(DataNewSocket)
+                    print("num server ",num)
                     addToFile(filename,text)
                     sr.sendto(createACK(num),addrm)
                     print('\033[0m[{}:{}] client request: {}'.format(addrm[0], addrm[1], DataNewSocket))
@@ -210,7 +217,10 @@ def connect(addr):
 
 def put(addr, filename, targetname, blksize, timeout):
     s = connect(addr)
-    req = b'\x00\x02' + bytearray(targetname, 'utf-8') + b'\x00octet\x00' + b'blksize' +b'\x00' + bytearray(str(blksize),"utf-8") +b'\x00'
+    if blksize == 512:
+        req = b'\x00\x02' + bytearray(targetname, 'utf-8') + b'\x00octet\x00' # Exemple : b'\x00\x01hello.txt\x00octet\x00'
+    else:
+        req = b'\x00\x02' + bytearray(targetname, 'utf-8') + b'\x00octet\x00' + b'blksize' +b'\x00' + bytearray(str(blksize),"utf-8") +b'\x00'
     s.sendto(req, addr)
     addrc = s.getsockname()
     printLog(addr, addrc, req, 2)
@@ -224,7 +234,10 @@ def put(addr, filename, targetname, blksize, timeout):
 
 def get(addr, filename, targetname, blksize, timeout):
     s = connect(addr)
-    req = b'\x00\x01' + bytearray(filename, 'utf-8') + b'\x00octet\x00' + b'blksize' +b'\x00' + bytearray(str(blksize),"utf-8") +b'\x00' # Exemple : b'\x00\x01hello.txt\x00octet\x00'
+    if blksize == 512:
+        req = b'\x00\x01' + bytearray(filename, 'utf-8') + b'\x00octet\x00' # Exemple : b'\x00\x01hello.txt\x00octet\x00'
+    else:   
+        req = b'\x00\x01' + bytearray(filename, 'utf-8') + b'\x00octet\x00' + b'blksize' +b'\x00' + bytearray(str(blksize),"utf-8") +b'\x00' # Exemple : b'\x00\x01hello.txt\x00octet\x00'
     s.sendto(req, addr)
     addrc = s.getsockname()
     printLog(addr, addrc, req, 2)
